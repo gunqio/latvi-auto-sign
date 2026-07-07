@@ -51,7 +51,6 @@ jobs:
           nohup /tmp/xray/xray -c /tmp/xray/conf/config.json > /tmp/xray.log 2>&1 &
           sleep 5
 
-          # 验证代理是否可用
           if ss -tlnp | grep -q ":1080"; then
             echo "✅ SOCKS5 代理已启动 (127.0.0.1:1080)"
           else
@@ -66,7 +65,7 @@ jobs:
 
       - name: 安装 Python 依赖
         run: |
-          pip install requests urllib3
+          pip install requests urllib3 pysocks
 
       - name: 执行签到并发送通知
         env:
