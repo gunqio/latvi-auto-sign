@@ -1,13 +1,16 @@
 name: "自动签到"
+
 on:
   schedule:
     - cron: "0 2 * * *"
   workflow_dispatch:
+
 jobs:
   sign:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: 检出当前仓库
+        uses: actions/checkout@v4
 
       - name: 从私库拉取 latvi_sign.py
         env:
@@ -19,9 +22,12 @@ jobs:
 
       - name: 安装 Xray-core
         run: |
+          echo "📥 下载 Xray-core..."
           wget -q https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip -O /tmp/xray.zip
           unzip -q /tmp/xray.zip -d /tmp/xray
           chmod +x /tmp/xray/xray
+          /tmp/xray/xray version
+          echo "✅ Xray 安装完成"
 
       - name: 配置并启动 Xray 代理
         env:
@@ -29,30 +35,47 @@ jobs:
           VMESS_CONFIG: ${{ secrets.VMESS_CONFIG }}
         run: |
           mkdir -p /tmp/xray/conf
+
           if [ -n "$VLESS_CONFIG" ]; then
+            echo "🔌 检测到 VLESS 配置"
             echo "$VLESS_CONFIG" > /tmp/xray/conf/config.json
           elif [ -n "$VMESS_CONFIG" ]; then
+            echo "🔌 检测到 VMess 配置"
             echo "$VMESS_CONFIG" > /tmp/xray/conf/config.json
           else
-            echo "⚠️ 未配置代理"
+            echo "⚠️ 未配置 VLESS_CONFIG 或 VMESS_CONFIG，跳过代理"
             exit 0
           fi
+
+          echo "🚀 启动 Xray..."
           nohup /tmp/xray/xray -c /tmp/xray/conf/config.json > /tmp/xray.log 2>&1 &
           sleep 5
-          ss -tlnp | grep -q ":1080" && echo "✅ 代理已启动" || (cat /tmp/xray.log; exit 1)
 
-      - uses: actions/setup-python@v5
+          # 验证代理是否可用
+          if ss -tlnp | grep -q ":1080"; then
+            echo "✅ SOCKS5 代理已启动 (127.0.0.1:1080)"
+          else
+            echo "⚠️ 代理端口未监听，查看日志:"
+            cat /tmp/xray.log || true
+          fi
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: 安装 Python 依赖
-        run: pip install requests urllib3
+        run: |
+          pip install requests urllib3
 
-      - name: 执行签到
+      - name: 执行签到并发送通知
         env:
           LATVI_EMAIL: ${{ secrets.LATVI_EMAIL }}
           LATVI_PASSWORD: ${{ secrets.LATVI_PASSWORD }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           ALL_PROXY: socks5://127.0.0.1:1080
-        run: python3 latvi_sign.py
+          HTTP_PROXY: socks5://127.0.0.1:1080
+          HTTPS_PROXY: socks5://127.0.0.1:1080
+        run: |
+          python3 latvi_sign.py
