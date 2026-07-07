@@ -1,0 +1,31 @@
+name: "自动签到"
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 从私库拉取 latvi_sign.py
+        env:
+          PAT: ${{ secrets.PAT }}
+        run: |
+          curl -fsSL -H "Authorization: token $PAT" \
+            "https://raw.githubusercontent.com/gunqio/zhiyong/main/latvi_sign.py" \
+            -o latvi_sign.py
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 执行签到
+        env:
+          LATVI_EMAIL: ${{ secrets.LATVI_EMAIL }}
+          LATVI_PASSWORD: ${{ secrets.LATVI_PASSWORD }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python3 latvi_sign.py
