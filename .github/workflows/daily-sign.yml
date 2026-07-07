@@ -2,16 +2,19 @@ name: "自动签到"
 
 on:
   schedule:
-    - cron: "0 2 * * *"
-  workflow_dispatch:
+    - cron: "0 2 * * *"        # 每天 UTC 2:00 执行
+  workflow_dispatch:           # 支持手动触发
 
 jobs:
   sign:
     runs-on: ubuntu-latest
+
     steps:
+      # ---------- 1. 检出当前仓库 ----------
       - name: 检出当前仓库
         uses: actions/checkout@v4
 
+      # ---------- 2. 从私库拉取 latvi_sign.py ----------
       - name: 从私库拉取 latvi_sign.py
         env:
           PAT: ${{ secrets.PAT }}
@@ -20,6 +23,7 @@ jobs:
             "https://raw.githubusercontent.com/gunqio/zhiyong/main/latvi_sign.py" \
             -o latvi_sign.py
 
+      # ---------- 3. 安装 Xray-core ----------
       - name: 安装 Xray-core
         run: |
           echo "📥 下载 Xray-core..."
@@ -29,6 +33,7 @@ jobs:
           /tmp/xray/xray version
           echo "✅ Xray 安装完成"
 
+      # ---------- 4. 配置并启动 Xray 代理 ----------
       - name: 配置并启动 Xray 代理
         env:
           VLESS_CONFIG: ${{ secrets.VLESS_CONFIG }}
@@ -58,15 +63,18 @@ jobs:
             cat /tmp/xray.log || true
           fi
 
+      # ---------- 5. 设置 Python ----------
       - name: 设置 Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      # ---------- 6. 安装 Python 依赖（包含 cloudscraper） ----------
       - name: 安装 Python 依赖
         run: |
-          pip install requests urllib3 pysocks
+          pip install requests urllib3 pysocks cloudscraper
 
+      # ---------- 7. 执行签到并发送通知 ----------
       - name: 执行签到并发送通知
         env:
           LATVI_EMAIL: ${{ secrets.LATVI_EMAIL }}
