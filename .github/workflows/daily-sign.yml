@@ -71,11 +71,13 @@ jobs:
         with:
           python-version: "3.11"
 
-      # ---------- 6. 安装 Python 依赖（含 curl_cffi） ----------
+      # ---------- 6. 安装 Python 依赖（Playwright + Chromium） ----------
       - name: 安装 Python 依赖
         run: |
           pip install --upgrade pip
-          pip install requests urllib3 pysocks cloudscraper curl_cffi
+          pip install requests urllib3 pysocks playwright
+          python -m playwright install chromium
+          python -m playwright install-deps
 
       # ---------- 7. 执行签到并发送通知 ----------
       - name: 执行签到并发送通知
