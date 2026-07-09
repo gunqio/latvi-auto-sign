@@ -6,6 +6,8 @@ on:
 jobs:
   run_latvi_coins:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+
     steps:
       - name: 📥 下载私库单文件
         env:
@@ -27,7 +29,7 @@ jobs:
           python-version: '3.10'
 
       - name: 🛡️ 启动 GOST 代理转发
-        if: ${{ env.GOST_PROXY != '' }}
+        if: ${{ secrets.GOST_PROXY != '' }}
         env:
           GOST_PROXY: ${{ secrets.GOST_PROXY }}
         run: |
@@ -56,5 +58,6 @@ jobs:
           TG_BOT: ${{ secrets.TG_BOT }}
           CRON_JOB: ${{ secrets.CRON_JOB }}
           GOST_PROXY: ${{ secrets.GOST_PROXY }}
+          HEADLESS: "1"
         run: |
           python latvi_coins.py
