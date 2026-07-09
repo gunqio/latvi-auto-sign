@@ -8,6 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
+    env:
+      GOST_PROXY: ${{ secrets.GOST_PROXY }}
+
     steps:
       - name: 📥 下载私库单文件
         env:
@@ -29,10 +32,12 @@ jobs:
           python-version: '3.10'
 
       - name: 🛡️ 启动 GOST 代理转发
-        if: ${{ secrets.GOST_PROXY != '' }}
-        env:
-          GOST_PROXY: ${{ secrets.GOST_PROXY }}
         run: |
+          if [ -z "$GOST_PROXY" ]; then
+            echo "GOST_PROXY 为空，跳过"
+            exit 0
+          fi
+
           VERSION=$(curl -s https://api.github.com/repos/ginuerzh/gost/releases/latest | grep '"tag_name"' | cut -d'"' -f4 | tr -d 'v')
           echo "📦 GOST 版本: $VERSION"
           wget -q "https://github.com/ginuerzh/gost/releases/download/v${VERSION}/gost_${VERSION}_linux_amd64.tar.gz"
@@ -57,7 +62,6 @@ jobs:
           LATVI_PASSWORD: ${{ secrets.LATVI_PASSWORD }}
           TG_BOT: ${{ secrets.TG_BOT }}
           CRON_JOB: ${{ secrets.CRON_JOB }}
-          GOST_PROXY: ${{ secrets.GOST_PROXY }}
           HEADLESS: "1"
         run: |
           python latvi_coins.py
